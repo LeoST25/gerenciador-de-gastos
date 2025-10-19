@@ -3,6 +3,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 // @ts-ignore
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// Debug: Log da API URL
+console.log('🔍 [AuthContext] API_BASE_URL:', API_BASE_URL);
+// @ts-ignore
+console.log('🔍 [AuthContext] VITE_API_URL env:', import.meta.env.VITE_API_URL);
+
 interface User {
   id: number;
   name: string;
