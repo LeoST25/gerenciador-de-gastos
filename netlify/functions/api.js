@@ -75,15 +75,30 @@ exports.handler = async (event, context) => {
 
     // Register
     if (path === '/auth/register' && method === 'POST') {
+      console.log('🔍 Dados recebidos no registro:', { 
+        body: body,
+        bodyType: typeof body,
+        rawBody: event.body,
+        headers: headers 
+      });
+      
       const { username, email, password } = body;
 
+      console.log('📝 Campos extraídos:', { username, email, password });
+
       if (!username || !email || !password) {
+        console.log('❌ Validação falhou:', { 
+          usernameCheck: !username, 
+          emailCheck: !email, 
+          passwordCheck: !password 
+        });
         return {
           statusCode: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           body: JSON.stringify({
             success: false,
-            error: 'Todos os campos são obrigatórios'
+            error: 'Todos os campos são obrigatórios',
+            debug: { username: !!username, email: !!email, password: !!password }
           })
         };
       }
