@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // @ts-ignore
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://gerenciador-de-gastos-production.up.railway.app';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Debug: Log da API URL
 console.log('🔍 [AuthContext] API_BASE_URL:', API_BASE_URL);

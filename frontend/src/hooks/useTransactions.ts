@@ -9,7 +9,7 @@ import {
 } from '../types/transaction';
 
 // @ts-ignore
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://gerenciador-de-gastos-production.up.railway.app';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
