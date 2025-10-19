@@ -22,6 +22,18 @@ const limiter = rateLimit({
   max: 100 // limit each IP to 100 requests per windowMs
 });
 
+// Rate limiting específico para IA (mais restritivo)
+const aiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 10, // máximo 10 requisições por minuto
+  message: {
+    error: 'Muitas requisições para análise IA. Tente novamente em 1 minuto.',
+    retryAfter: 60
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
 app.use(limiter);
 app.use(helmet());
@@ -42,7 +54,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/ai', aiLimiter, aiRoutes); // Rate limit específico para IA
 app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
