@@ -112,6 +112,34 @@ docker-compose up --build
 - Backend: Root Directory = `backend`
 - Frontend: Root Directory = `frontend`
 
+### Erro "tsc: not found" no Docker
+
+**Solução:** O TypeScript precisa estar instalado para build
+- ✅ Corrigido no `Dockerfile` - instala dependências dev para build
+- Use `npm ci` primeiro, depois `npm prune --omit=dev`
+
+### Erro no Vercel CLI
+
+**Soluções:**
+1. **Instalar Vercel CLI:**
+```bash
+npm install -g vercel
+```
+
+2. **Deploy alternativo via site:**
+   - Acesse [vercel.com](https://vercel.com)
+   - "Add New Project"
+   - Import do GitHub
+   - **Root Directory: `frontend`**
+   - Framework: Vite (auto-detectado)
+
+3. **Deploy manual:**
+```bash
+cd frontend
+npm run build
+npx vercel --prod ./dist
+```
+
 ### Erro de CORS em produção
 
 **Solução:** Atualizar backend `src/server.ts`:
@@ -130,6 +158,13 @@ cors({
 ```env
 VITE_API_URL=https://seu-backend.up.railway.app
 ```
+
+### Docker build falha
+
+**Soluções:**
+1. Use `Dockerfile.simple` para builds mais diretos
+2. Verifique se todas as dependências estão no package.json
+3. Use multi-stage build para otimização
 
 ## 🌟 Deploy Recomendado: Vercel + Railway
 

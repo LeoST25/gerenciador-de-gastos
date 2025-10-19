@@ -1,0 +1,40 @@
+# Dockerfile simples para Railway - Backend
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Instalar dependências de sistema
+RUN apk add --no-cache curl
+
+# Copiar package files
+COPY backend/package*.json ./
+
+# Instalar todas as dependências
+RUN npm ci
+
+# Copiar código fonte
+COPY backend/ ./
+
+# Build da aplicação
+RUN npm run build
+
+# Limpar dependências de desenvolvimento
+RUN npm prune --omit=dev
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S backend -u 1001 -G nodejs
+
+# Alterar ownership
+RUN chown -R backend:nodejs /app
+USER backend
+
+# Expor porta
+EXPOSE 3002
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3002/health || exit 1
+
+# Comando para iniciar
+CMD ["npm", "start"]
