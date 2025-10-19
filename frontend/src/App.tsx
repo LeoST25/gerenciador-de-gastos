@@ -5,12 +5,15 @@ import { Transactions } from './pages/Transactions'
 import { AIInsights } from './pages/AIInsights'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
-import { useAuth } from './hooks/useAuth'
+import { useAuth } from './contexts/AuthContext'
 
 function App() {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
+  
+  console.log('🏠 App render:', { isAuthenticated, loading, user: user?.email });
 
   if (loading) {
+    console.log('⏳ Mostrando tela de carregamento...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
@@ -19,6 +22,7 @@ function App() {
   }
 
   if (!isAuthenticated) {
+    console.log('🚫 Usuário não autenticado, mostrando páginas de auth...');
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -28,6 +32,7 @@ function App() {
     )
   }
 
+  console.log('✅ Usuário autenticado, mostrando dashboard...');
   return (
     <Layout>
       <Routes>

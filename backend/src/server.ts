@@ -27,7 +27,13 @@ app.use(limiter);
 app.use(helmet());
 app.use(compression());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.NODE_ENV === 'production' 
+    ? [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
+      ]
+    : true, // Em desenvolvimento, permite qualquer origem
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));

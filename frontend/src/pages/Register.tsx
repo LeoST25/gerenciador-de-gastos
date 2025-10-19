@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 export function Register() {
@@ -57,7 +57,7 @@ export function Register() {
 
     const result = await register(formData.name.trim(), formData.email.trim(), formData.password)
     
-    if (result.success) {
+    if (result.success && result.user) {
       toast.success(`Bem-vindo, ${result.user.name}! Conta criada com sucesso!`)
       navigate('/')
     } else {

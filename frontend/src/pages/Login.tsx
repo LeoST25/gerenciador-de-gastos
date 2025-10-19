@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
 export function Login() {
@@ -40,10 +40,17 @@ export function Login() {
     setLoading(true)
 
     const result = await login(formData.email.trim(), formData.password)
+    console.log('🔑 Resultado do login:', result);
     
     if (result.success) {
+      console.log('🎯 Login bem-sucedido, aguardando sincronização...');
       toast.success('Login realizado com sucesso!')
-      navigate('/')
+      
+      // Aguardar um pouco para garantir que o estado seja atualizado
+      setTimeout(() => {
+        console.log('⏰ Navegando após timeout...');
+        navigate('/')
+      }, 100)
     } else {
       if (result.details) {
         // Erros de validação do backend
