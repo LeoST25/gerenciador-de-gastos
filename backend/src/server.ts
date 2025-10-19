@@ -38,9 +38,16 @@ const aiLimiter = rateLimit({
 app.use(limiter);
 app.use(helmet());
 app.use(compression());
-// CORS configuration - Mais permissivo temporariamente
+// CORS configuration - Incluindo Netlify
 const corsOptions = {
-  origin: true, // TEMPORÁRIO: Permite todas as origens para debug
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://gerenciador-gastos-frontend.vercel.app',
+    'https://gerenciador-de-gastos-frontend.vercel.app',
+    'https://gerenciador-de-gastos-frontend.netlify.app',
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
