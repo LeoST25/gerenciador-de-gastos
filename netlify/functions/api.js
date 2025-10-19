@@ -1,9 +1,9 @@
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
-import serverless from 'serverless-http';
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const serverless = require('serverless-http');
 
 const app = express();
 
@@ -26,7 +26,7 @@ const aiLimiter = rateLimit({
 });
 
 // CORS configuração primeiro - ANTES de outros middlewares
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req, res, next) => {
   // Permitir todas as origens
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
@@ -60,13 +60,13 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Middleware de log para debug
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
   next();
 });
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
@@ -77,7 +77,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Rota de teste
-app.get('/test', (req: Request, res: Response) => {
+app.get('/test', (req, res) => {
   res.json({ 
     message: 'Netlify Functions API funcionando!',
     timestamp: new Date().toISOString()
@@ -85,7 +85,7 @@ app.get('/test', (req: Request, res: Response) => {
 });
 
 // Rota básica de auth para teste
-app.post('/auth/test', (req: Request, res: Response) => {
+app.post('/auth/test', (req, res) => {
   res.json({
     message: 'Auth endpoint funcionando!',
     body: req.body
@@ -93,9 +93,9 @@ app.post('/auth/test', (req: Request, res: Response) => {
 });
 
 // 404 handler
-app.use('*', (req: Request, res: Response) => {
+app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found', path: req.originalUrl });
 });
 
 // Export handler for Netlify Functions
-export const handler = serverless(app);
+exports.handler = serverless(app);
