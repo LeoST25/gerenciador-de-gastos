@@ -223,13 +223,9 @@ app.get('/auth/me', (req, res) => {
 // ========== TRANSACTIONS ROUTES ==========
 // Middleware para verificar autenticação
 const requireAuth = (req, res, next) => {
-  console.log('🔒 Verificando autenticação...');
-  console.log('📋 Headers:', req.headers);
-  
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('❌ Token não fornecido ou formato inválido');
     return res.status(401).json({ 
       success: false,
       error: 'Token não fornecido' 
@@ -237,13 +233,9 @@ const requireAuth = (req, res, next) => {
   }
   
   const token = authHeader.split(' ')[1];
-  console.log('🎫 Token extraído:', token.substring(0, 20) + '...');
-  
   const userId = getUserIdFromToken(token);
-  console.log('🆔 User ID do token:', userId);
   
   if (!userId) {
-    console.log('❌ Token inválido - não foi possível extrair user ID');
     return res.status(401).json({ 
       success: false,
       error: 'Token inválido' 
@@ -252,14 +244,12 @@ const requireAuth = (req, res, next) => {
   
   const user = findUserById(userId);
   if (!user) {
-    console.log('❌ Usuário não encontrado para ID:', userId);
     return res.status(401).json({ 
       success: false,
       error: 'Usuário não encontrado' 
     });
   }
   
-  console.log('✅ Usuário autenticado:', { id: user.id, email: user.email });
   req.user = user;
   next();
 };
@@ -322,9 +312,6 @@ app.get('/transactions/categories', requireAuth, (req, res) => {
 
 // Create transaction
 app.post('/transactions', requireAuth, (req, res) => {
-  console.log('📝 Dados recebidos para transação:', req.body);
-  console.log('👤 Usuário autenticado:', { id: req.user.id, email: req.user.email });
-  
   const { description, amount, type, category, date } = req.body;
   
   // Validação detalhada com logs
@@ -352,14 +339,9 @@ app.post('/transactions', requireAuth, (req, res) => {
   }
   
   if (validationErrors.length > 0) {
-    console.log('❌ Erros de validação:', validationErrors);
     return res.status(400).json({ 
       success: false,
-      error: validationErrors.join(', '),
-      details: {
-        received: req.body,
-        validationErrors
-      }
+      error: validationErrors.join(', ')
     });
   }
   
