@@ -88,7 +88,7 @@ export const useTransactions = () => {
       if (filters?.startDate) queryParams.append('startDate', filters.startDate);
       if (filters?.endDate) queryParams.append('endDate', filters.endDate);
 
-      const url = `/api/transactions/summary${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const url = `/api/dashboard/summary${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       console.log('📊 Buscando resumo em:', url);
       
       const response: ApiResponse<TransactionSummary> = await authenticatedFetch(url);

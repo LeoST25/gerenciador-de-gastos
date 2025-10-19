@@ -304,16 +304,19 @@ exports.handler = async (event, context) => {
           statusCode: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           body: JSON.stringify({
-            totalIncome,
-            totalExpenses,
-            balance: totalIncome - totalExpenses,
-            transactionCount: userTransactions.length,
-            lastTransaction: lastTransaction ? {
-              description: lastTransaction.description,
-              amount: lastTransaction.amount,
-              type: lastTransaction.type,
-              date: lastTransaction.date
-            } : null
+            success: true,
+            data: {
+              totalIncome,
+              totalExpenses,
+              balance: totalIncome - totalExpenses,
+              transactionCount: userTransactions.length,
+              lastTransaction: lastTransaction ? {
+                description: lastTransaction.description,
+                amount: lastTransaction.amount,
+                type: lastTransaction.type,
+                date: lastTransaction.date
+              } : null
+            }
           })
         };
       } catch (error) {
