@@ -223,24 +223,43 @@ app.get('/auth/me', (req, res) => {
 // ========== TRANSACTIONS ROUTES ==========
 // Middleware para verificar autenticação
 const requireAuth = (req, res, next) => {
+  console.log('🔒 Verificando autenticação...');
+  console.log('📋 Headers:', req.headers);
+  
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token não fornecido' });
+    console.log('❌ Token não fornecido ou formato inválido');
+    return res.status(401).json({ 
+      success: false,
+      error: 'Token não fornecido' 
+    });
   }
   
   const token = authHeader.split(' ')[1];
+  console.log('🎫 Token extraído:', token.substring(0, 20) + '...');
+  
   const userId = getUserIdFromToken(token);
+  console.log('🆔 User ID do token:', userId);
   
   if (!userId) {
-    return res.status(401).json({ error: 'Token inválido' });
+    console.log('❌ Token inválido - não foi possível extrair user ID');
+    return res.status(401).json({ 
+      success: false,
+      error: 'Token inválido' 
+    });
   }
   
   const user = findUserById(userId);
   if (!user) {
-    return res.status(401).json({ error: 'Usuário não encontrado' });
+    console.log('❌ Usuário não encontrado para ID:', userId);
+    return res.status(401).json({ 
+      success: false,
+      error: 'Usuário não encontrado' 
+    });
   }
   
+  console.log('✅ Usuário autenticado:', { id: user.id, email: user.email });
   req.user = user;
   next();
 };
@@ -303,32 +322,65 @@ app.get('/transactions/categories', requireAuth, (req, res) => {
 
 // Create transaction
 app.post('/transactions', requireAuth, (req, res) => {
+  console.log('📝 Dados recebidos para transação:', req.body);
+  console.log('👤 Usuário autenticado:', { id: req.user.id, email: req.user.email });
+  
   const { description, amount, type, category, date } = req.body;
   
-  if (!description || !amount || !type || !category) {
+  // Validação detalhada com logs
+  const validationErrors = [];
+  
+  if (!description || description.trim() === '') {
+    validationErrors.push('Descrição é obrigatória');
+  }
+  
+  if (!amount && amount !== 0) {
+    validationErrors.push('Valor é obrigatório');
+  } else if (isNaN(parseFloat(amount))) {
+    validationErrors.push('Valor deve ser um número válido');
+  } else if (parseFloat(amount) <= 0) {
+    validationErrors.push('Valor deve ser maior que zero');
+  }
+  
+  if (!type || (type !== 'income' && type !== 'expense')) {
+    validationErrors.push('Tipo deve ser "income" ou "expense"');
+  }
+  
+  if (!category || category.trim() === '') {
+    validationErrors.push('Categoria é obrigatória');
+  }
+  
+  if (validationErrors.length > 0) {
+    console.log('❌ Erros de validação:', validationErrors);
     return res.status(400).json({ 
       success: false,
-      error: 'Descrição, valor, tipo e categoria são obrigatórios' 
+      error: validationErrors.join(', '),
+      details: {
+        received: req.body,
+        validationErrors
+      }
     });
   }
   
   const transaction = {
     id: nextTransactionId++,
     userId: req.user.id,
-    description,
+    description: description.trim(),
     amount: parseFloat(amount),
     type,
-    category,
+    category: category.trim(),
     date: date || new Date().toISOString().split('T')[0],
     created_at: new Date().toISOString()
   };
   
   transactions.push(transaction);
-  console.log('💳 Transação criada:', { 
+  console.log('💳 Transação criada com sucesso:', { 
     id: transaction.id, 
     userId: transaction.userId, 
     description: transaction.description,
     amount: transaction.amount,
+    type: transaction.type,
+    category: transaction.category,
     totalTransactions: transactions.length 
   });
   
