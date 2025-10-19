@@ -9,6 +9,7 @@ import { authRoutes } from './routes/auth';
 import { transactionRoutes } from './routes/transactions';
 import { aiRoutes } from './routes/ai';
 import { dashboardRoutes } from './routes/dashboard';
+import './database/connection'; // Inicializar banco de dados
 
 dotenv.config();
 

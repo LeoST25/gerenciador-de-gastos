@@ -1,23 +1,57 @@
 import { useState, useEffect } from 'react'
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  created_at?: string;
+}
+
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    // Simular verificação de autenticação
-    const token = localStorage.getItem('token')
-    if (token) {
-      setIsAuthenticated(true)
-      setUser({ id: 1, name: 'Usuário Teste', email: 'test@example.com' })
-    }
-    setLoading(false)
+    checkAuthStatus()
   }, [])
+
+  const checkAuthStatus = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setIsAuthenticated(true)
+        setUser(data.user)
+      } else {
+        // Token inválido, remover
+        localStorage.removeItem('token')
+        setIsAuthenticated(false)
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('Erro ao verificar autenticação:', error)
+      localStorage.removeItem('token')
+      setIsAuthenticated(false)
+      setUser(null)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const login = async (email: string, password: string) => {
     try {
-      // Simular login
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,10 +66,10 @@ export function useAuth() {
         setUser(data.user)
         return { success: true }
       } else {
-        return { success: false, error: data.error }
+        return { success: false, error: data.error, details: data.details }
       }
     } catch (error) {
-      return { success: false, error: 'Erro de conexão' }
+      return { success: false, error: 'Erro de conexão com o servidor' }
     }
   }
 
@@ -50,12 +84,16 @@ export function useAuth() {
       const data = await response.json()
       
       if (response.ok) {
-        return { success: true }
+        // Após registro bem-sucedido, fazer login automaticamente
+        localStorage.setItem('token', data.token)
+        setIsAuthenticated(true)
+        setUser(data.user)
+        return { success: true, user: data.user }
       } else {
-        return { success: false, error: data.error }
+        return { success: false, error: data.error, details: data.details }
       }
     } catch (error) {
-      return { success: false, error: 'Erro de conexão' }
+      return { success: false, error: 'Erro de conexão com o servidor' }
     }
   }
 
