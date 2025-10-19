@@ -1,0 +1,11 @@
+# Define detecção de linguagem para GitHub
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
+*.js linguist-language=JavaScript
+*.jsx linguist-language=JavaScript
+
+# Excluir arquivos de dependências da contagem de linguagem
+node_modules/* linguist-vendored
+dist/* linguist-generated=true
+build/* linguist-generated=true
+*.lock linguist-generated=true
