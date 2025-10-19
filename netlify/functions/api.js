@@ -33,7 +33,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const path = event.path.replace('/.netlify/functions/api', '');
+    const path = event.path.replace('/api', '') || '/';
     const method = event.httpMethod;
     const body = event.body ? JSON.parse(event.body) : {};
     const headers = event.headers || {};
