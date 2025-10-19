@@ -38,20 +38,14 @@ const aiLimiter = rateLimit({
 app.use(limiter);
 app.use(helmet());
 app.use(compression());
-// CORS configuration - Incluindo Netlify
+// CORS configuration - Permissivo para debug (TEMPORÁRIO)
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'https://gerenciador-gastos-frontend.vercel.app',
-    'https://gerenciador-de-gastos-frontend.vercel.app',
-    'https://gerenciador-de-gastos-frontend.netlify.app',
-    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
-  ],
+  origin: true, // Permite qualquer origem temporariamente
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 };
 
 app.use(cors(corsOptions));
@@ -60,8 +54,22 @@ app.use(express.urlencoded({ extended: true }));
 
 // Middleware de log para debug
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
   next();
+});
+
+// Middleware adicional de CORS manual
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
 });
 
 // Routes
