@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
+    "dev:suppress": "nodemon -r ./suppress-warnings.js src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest",
