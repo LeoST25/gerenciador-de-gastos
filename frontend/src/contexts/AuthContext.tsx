@@ -68,9 +68,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ [Context] Usuário autenticado:', data.user);
+        console.log('✅ [Context] Usuário autenticado:', data.data.user);
         setIsAuthenticated(true);
-        setUser(data.user);
+        setUser(data.data.user);
       } else {
         console.log('🚫 [Context] Token inválido, removendo...');
         localStorage.removeItem('token');
@@ -101,13 +101,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const data = await response.json();
       console.log('📡 [Context] Resposta do login:', { response: response.ok, data });
       
-      if (response.ok) {
+      if (response.ok && data.success) {
         console.log('✅ [Context] Login bem-sucedido, salvando token...');
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('token', data.data.token);
         
         // Atualizar estado
-        console.log('🎉 [Context] Atualizando estado...', { user: data.user });
-        setUser(data.user);
+        console.log('🎉 [Context] Atualizando estado...', { user: data.data.user });
+        setUser(data.data.user);
         setIsAuthenticated(true);
         
         console.log('✨ [Context] Estado atualizado!');
@@ -133,11 +133,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const data = await response.json();
       
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
+      if (response.ok && data.success) {
+        localStorage.setItem('token', data.data.token);
         setIsAuthenticated(true);
-        setUser(data.user);
-        return { success: true, user: data.user };
+        setUser(data.data.user);
+        return { success: true, user: data.data.user };
       } else {
         return { success: false, error: data.error, details: data.details };
       }
