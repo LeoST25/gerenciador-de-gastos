@@ -1,24 +1,31 @@
 import sqlite3 from 'sqlite3';
 import { promisify } from 'util';
-
-// Versão simplificada que funciona apenas com SQLite por enquanto
-// PostgreSQL será configurado depois quando necessário
+import { Pool } from 'pg';
 
 class Database {
-  private db: sqlite3.Database;
+  private db: sqlite3.Database | null = null;
+  private pgPool: Pool | null = null;
 
   constructor() {
-    // Em produção, usar in-memory database temporariamente
-    const dbPath = process.env.NODE_ENV === 'production' ? ':memory:' : './database.sqlite';
-    
-    this.db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        console.error('Erro ao conectar com o banco de dados:', err.message);
-      } else {
-        console.log(`📊 Conectado ao banco de dados: ${process.env.NODE_ENV === 'production' ? 'In-Memory (temp)' : 'SQLite'}`);
-        this.initTables();
-      }
-    });
+    if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+      // PostgreSQL para produção
+      this.pgPool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      });
+      console.log('📊 Conectando ao PostgreSQL (Railway)');
+      this.initPostgresTables();
+    } else {
+      // SQLite para desenvolvimento
+      this.db = new sqlite3.Database('./database.sqlite', (err) => {
+        if (err) {
+          console.error('Erro ao conectar com o banco de dados:', err.message);
+        } else {
+          console.log('📊 Conectado ao banco de dados SQLite');
+          this.initTables();
+        }
+      });
+    }
   }
 
   private async initTables() {
@@ -39,44 +46,31 @@ class Database {
         user_id INTEGER NOT NULL,
         type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
         amount REAL NOT NULL,
+        description TEXT NOT NULL,
         category TEXT NOT NULL,
-        description TEXT,
         date DATETIME NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users (id)
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       )
     `;
-
-    const createIndexes = [
-      'CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id)',
-      'CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)',
-      'CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type)',
-      'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)'
-    ];
 
     try {
       await this.run(createUsersTable);
       await this.run(createTransactionsTable);
-      
-      for (const indexQuery of createIndexes) {
-        await this.run(indexQuery);
-      }
-      
-      console.log('✅ Tabelas e índices criados/verificados com sucesso');
+      console.log('✅ Tabelas criadas com sucesso');
     } catch (error) {
       console.error('❌ Erro ao criar tabelas:', error);
     }
   }
 
-  // Promisify dos métodos do SQLite
-  run(sql: string, params: any[] = []): Promise<{ lastID: number; changes: number }> {
+  run(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
     return new Promise((resolve, reject) => {
       this.db.run(sql, params, function(err) {
         if (err) {
           reject(err);
         } else {
-          resolve({ lastID: this.lastID, changes: this.changes });
+          resolve(this);
         }
       });
     });
@@ -100,7 +94,7 @@ class Database {
         if (err) {
           reject(err);
         } else {
-          resolve(rows || []);
+          resolve(rows);
         }
       });
     });
@@ -112,6 +106,7 @@ class Database {
         if (err) {
           reject(err);
         } else {
+          console.log('🔒 Conexão com banco de dados fechada');
           resolve();
         }
       });
@@ -119,5 +114,4 @@ class Database {
   }
 }
 
-// Singleton
 export const database = new Database();
