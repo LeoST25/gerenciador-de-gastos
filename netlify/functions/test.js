@@ -1,20 +1,18 @@
-const express = require('express');
-const serverless = require('serverless-http');
-
-const app = express();
-
-app.use(express.json());
-
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'API funcionando!',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found', path: req.originalUrl });
-});
-
-exports.handler = serverless(app);
+exports.handler = async (event, context) => {
+  return {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+    },
+    body: JSON.stringify({
+      status: 'OK',
+      message: 'Function básica funcionando!',
+      timestamp: new Date().toISOString(),
+      method: event.httpMethod,
+      path: event.path
+    })
+  }
+};
