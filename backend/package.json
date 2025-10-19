@@ -8,9 +8,11 @@
     "dev:suppress": "nodemon -r ./suppress-warnings.js src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "start:prod": "npm run db:migrate && npm start",
     "test": "jest",
     "db:migrate": "npx knex migrate:latest",
-    "db:seed": "npx knex seed:run"
+    "db:seed": "npx knex seed:run",
+    "postinstall": "npm run build"
   },
   "keywords": [
     "typescript",
