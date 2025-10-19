@@ -43,6 +43,8 @@ app.use(cors({
     ? [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
+        'https://gerenciador-gastos-frontend.vercel.app',
+        'https://gerenciador-de-gastos-frontend.vercel.app',
         ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
       ]
     : true, // Em desenvolvimento, permite qualquer origem
@@ -59,7 +61,21 @@ app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: 'connected'
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: 'connected'
+  });
 });
 
 // Error handler
