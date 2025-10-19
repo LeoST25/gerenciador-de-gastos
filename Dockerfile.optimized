@@ -1,15 +1,15 @@
-# Dockerfile simples para Railway - Backend
+# Dockerfile otimizado para Railway - Backend
 FROM node:18-alpine
-
-WORKDIR /app
 
 # Instalar dependências de sistema
 RUN apk add --no-cache curl
 
+WORKDIR /app
+
 # Copiar package files
 COPY backend/package*.json ./
 
-# Instalar todas as dependências (incluindo dev para build)
+# Instalar todas as dependências (incluindo dev)
 RUN npm install
 
 # Copiar código fonte
@@ -18,10 +18,8 @@ COPY backend/ ./
 # Build da aplicação
 RUN npm run build
 
-# Remover node_modules e reinstalar apenas produção (sem scripts)
-RUN rm -rf node_modules && \
-    npm install --omit=dev --ignore-scripts && \
-    npm cache clean --force
+# Remover node_modules e reinstalar apenas produção
+RUN rm -rf node_modules && npm ci --omit=dev && npm cache clean --force
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && \

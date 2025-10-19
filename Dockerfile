@@ -7,7 +7,7 @@ WORKDIR /app
 COPY backend/package*.json ./
 
 # Instalar todas as dependências (incluindo dev)
-RUN npm ci
+RUN npm install
 
 # Copiar código fonte
 COPY backend/ ./
@@ -23,11 +23,11 @@ RUN apk add --no-cache curl
 
 WORKDIR /app
 
-# Copiar package.json e package-lock.json
+# Copiar package.json para produção
 COPY backend/package*.json ./
 
-# Instalar apenas dependências de produção
-RUN npm ci --omit=dev && npm cache clean --force
+# Instalar apenas dependências de produção (sem postinstall)
+RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
 
 # Copiar arquivos buildados do stage anterior
 COPY --from=builder /app/dist ./dist

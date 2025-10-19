@@ -1,0 +1,27 @@
+# Dockerfile específico para Railway (sem complicações)
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar arquivos de configuração
+COPY backend/package*.json ./
+COPY backend/tsconfig.json ./
+
+# Instalar dependências (todas, incluindo dev)
+RUN npm install
+
+# Copiar código
+COPY backend/src ./src
+
+# Build
+RUN npx tsc
+
+# Limpar e reinstalar apenas produção
+RUN rm -rf node_modules
+RUN npm install --production --ignore-scripts
+
+# Expor porta
+EXPOSE 3002
+
+# Start
+CMD ["node", "dist/server.js"]

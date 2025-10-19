@@ -11,8 +11,7 @@
     "start:prod": "npm run db:migrate && npm start",
     "test": "jest",
     "db:migrate": "npx knex migrate:latest",
-    "db:seed": "npx knex seed:run",
-    "postinstall": "npm run build"
+    "db:seed": "npx knex seed:run"
   },
   "keywords": [
     "typescript",

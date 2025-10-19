@@ -162,9 +162,30 @@ VITE_API_URL=https://seu-backend.up.railway.app
 ### Docker build falha
 
 **Soluções:**
-1. Use `Dockerfile.simple` para builds mais diretos
-2. Verifique se todas as dependências estão no package.json
-3. Use multi-stage build para otimização
+1. **Use diferentes Dockerfiles para diferentes situações:**
+   - `Dockerfile` - Multi-stage otimizado
+   - `Dockerfile.simple` - Build direto e simples
+   - `Dockerfile.railway` - Específico para Railway
+   - `Dockerfile.optimized` - Versão mais robusta
+
+2. **Problema com postinstall script:**
+   ```bash
+   # Se o build falhar devido ao postinstall
+   # O script foi removido do package.json
+   # Use --ignore-scripts como fallback
+   ```
+
+3. **Commands para testar localmente:**
+   ```bash
+   # Teste diferentes builds
+   docker build -f Dockerfile .
+   docker build -f Dockerfile.simple .
+   docker build -f Dockerfile.railway .
+   ```
+
+4. **Verificar dependências no package.json:**
+   - TypeScript deve estar em devDependencies
+   - Remover postinstall se causar problemas
 
 ## 🌟 Deploy Recomendado: Vercel + Railway
 
