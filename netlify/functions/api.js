@@ -330,8 +330,9 @@ app.post('/transactions', requireAuth, (req, res) => {
   // Validação detalhada com logs
   const validationErrors = [];
   
-  if (!description || description.trim() === '') {
-    validationErrors.push('Descrição é obrigatória');
+  // Description é opcional, mas se fornecida não pode ser vazia
+  if (description && description.trim() === '') {
+    validationErrors.push('Descrição não pode ser vazia');
   }
   
   if (!amount && amount !== 0) {
@@ -365,7 +366,7 @@ app.post('/transactions', requireAuth, (req, res) => {
   const transaction = {
     id: nextTransactionId++,
     userId: req.user.id,
-    description: description.trim(),
+    description: description ? description.trim() : null,
     amount: parseFloat(amount),
     type,
     category: category.trim(),
