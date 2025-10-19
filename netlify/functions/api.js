@@ -78,4 +78,6 @@ app.use('*', (req, res) => {
 });
 
 // Export handler for Netlify Functions
-exports.handler = serverless(app);
+exports.handler = serverless(app, {
+  basePath: '/api'
+});
