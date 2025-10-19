@@ -2,28 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 const serverless = require('serverless-http');
 
 const app = express();
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-
-// Rate limiting específico para IA (mais restritivo)
-const aiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 10, // máximo 10 requisições por minuto
-  message: {
-    error: 'Muitas requisições para análise IA. Tente novamente em 1 minuto.',
-    retryAfter: 60
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // CORS configuração primeiro - ANTES de outros middlewares
 app.use((req, res, next) => {
@@ -41,7 +22,6 @@ app.use((req, res, next) => {
 });
 
 // Middleware
-app.use(limiter);
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" }
