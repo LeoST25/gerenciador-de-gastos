@@ -38,39 +38,13 @@ const aiLimiter = rateLimit({
 app.use(limiter);
 app.use(helmet());
 app.use(compression());
-// CORS configuration
+// CORS configuration - Mais permissivo temporariamente
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'https://gerenciador-gastos-frontend.vercel.app',
-      'https://gerenciador-de-gastos-frontend.vercel.app',
-      ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
-    ];
-    
-    console.log('🔍 [CORS] Origin:', origin);
-    console.log('🔍 [CORS] Allowed origins:', allowedOrigins);
-    
-    // Permitir requisições sem origin (Postman, apps mobile, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('🔍 [CORS] Development mode - allowing all origins');
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ [CORS] Origin allowed:', origin);
-      return callback(null, true);
-    } else {
-      console.log('❌ [CORS] Origin blocked:', origin);
-      return callback(new Error('Not allowed by CORS'), false);
-    }
-  },
+  origin: true, // TEMPORÁRIO: Permite todas as origens para debug
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
