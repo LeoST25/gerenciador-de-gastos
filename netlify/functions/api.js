@@ -186,7 +186,46 @@ app.get('/transactions', (req, res) => {
     }
   ];
   
-  res.json(transactions);
+  res.json({
+    success: true,
+    data: transactions
+  });
+});
+
+// Get transactions summary
+app.get('/transactions/summary', (req, res) => {
+  const summary = {
+    totalIncome: 5000.00,
+    totalExpense: 400.00,
+    balance: 4600.00,
+    transactionCount: 3
+  };
+  
+  res.json({
+    success: true,
+    data: summary
+  });
+});
+
+// Get transactions categories
+app.get('/transactions/categories', (req, res) => {
+  const categories = [
+    'Alimentação',
+    'Transporte',
+    'Trabalho',
+    'Lazer',
+    'Saúde',
+    'Educação',
+    'Casa',
+    'Roupas',
+    'Investimentos',
+    'Outros'
+  ];
+  
+  res.json({
+    success: true,
+    data: categories
+  });
 });
 
 // Create transaction
@@ -195,6 +234,7 @@ app.post('/transactions', (req, res) => {
   
   if (!description || !amount || !type || !category) {
     return res.status(400).json({ 
+      success: false,
       error: 'Descrição, valor, tipo e categoria são obrigatórios' 
     });
   }
@@ -209,7 +249,10 @@ app.post('/transactions', (req, res) => {
     created_at: new Date().toISOString()
   };
   
-  res.status(201).json(transaction);
+  res.status(201).json({
+    success: true,
+    data: transaction
+  });
 });
 
 // ========== DASHBOARD ROUTES ==========
