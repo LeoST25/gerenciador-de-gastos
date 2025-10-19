@@ -33,7 +33,8 @@ gerenciador_de_gastos/
 
 ### Status do Desenvolvimento
 - [x] Estrutura básica criada
-- [ ] Backend API implementado
-- [ ] Frontend React configurado
-- [ ] Integração com IA
-- [ ] Deploy configurado
+- [x] Backend API implementado
+- [x] Frontend React configurado
+- [x] Integração com IA (mock implementado)
+- [x] Sistema completo funcional
+- [ ] Deploy em produção

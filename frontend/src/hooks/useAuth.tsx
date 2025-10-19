@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     // Simular verificação de autenticação
