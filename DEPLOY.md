@@ -8,92 +8,113 @@ Este documento contém instruções para fazer deploy da aplicação em várias 
 - Git
 - Conta nas plataformas de deploy
 
-## 🌐 Opções de Deploy Gratuito
+## 🌐 Deploy Recomendado: Frontend + Backend Separados
 
-### 1. Railway 🚂 (Recomendado)
+### 🎨 Frontend no Vercel (Recomendado)
 
-**Vantagens:** Fácil setup, PostgreSQL gratuito, domínio automático
+**Vantagens:** Otimizado para React, CDN global, domínio gratuito
 
-```bash
-# Instalar Railway CLI
-npm install -g @railway/cli
-
-# Login
-railway login
-
-# Deploy automático
-./deploy-railway.sh
-```
-
-**Configuração manual:**
-1. Acesse [railway.app](https://railway.app)
-2. Conecte seu GitHub
-3. Selecione o repositório `gerenciador-de-gastos`
-4. Configure variáveis de ambiente
-5. Deploy automático
-
-### 2. Vercel (Frontend) + Railway (Backend) 🔗
-
-**Frontend no Vercel:**
 ```bash
 # Instalar Vercel CLI
 npm install -g vercel
 
-# Deploy
+# Deploy do frontend
 cd frontend
 vercel --prod
 ```
 
-**Backend no Railway:** (veja acima)
-
-### 3. Render 🎨
-
-1. Acesse [render.com](https://render.com)
+**Configuração no site:**
+1. Acesse [vercel.com](https://vercel.com)
 2. Conecte GitHub
-3. Use o arquivo `render.yaml` incluído
-4. Configure variáveis de ambiente
+3. Selecione repositório
+4. **Root Directory: `frontend`**
+5. **Framework Preset: Vite**
+6. Deploy automático
 
-### 4. Netlify (Frontend) + Railway (Backend) 🌐
+### 🚂 Backend no Railway
 
-**Frontend:**
-1. Conecte GitHub no [netlify.com](https://netlify.com)
-2. Selecione repositório
-3. Build: `cd frontend && npm run build`
-4. Publish: `frontend/dist`
+**Vantagens:** PostgreSQL gratuito, fácil para APIs Node.js
 
-## ⚙️ Variáveis de Ambiente
+1. Acesse [railway.app](https://railway.app)
+2. **"New Project"** → **"Deploy from GitHub repo"**
+3. Selecione repositório `gerenciador-de-gastos`
+4. **Root Directory: `backend`**
+5. Configure variáveis de ambiente
+6. Deploy automático
 
-### Backend
+### ⚙️ Configuração de Variáveis de Ambiente
+
+**Railway (Backend):**
 ```env
 NODE_ENV=production
 PORT=3002
 JWT_SECRET=sua_chave_secreta_super_segura
-FRONTEND_URL=https://seu-frontend.vercel.app
+DATABASE_URL=${{Postgres.DATABASE_URL}}
 ```
 
-### Frontend
+**Vercel (Frontend):**
 ```env
-VITE_API_URL=https://seu-backend.railway.app
+VITE_API_URL=https://seu-backend.up.railway.app
 ```
 
-## 🐳 Deploy com Docker
+## 🔄 Alternativas de Deploy
+
+### 2. Railway Full Stack (Com configuração especial)
+
+Se quiser usar Railway para tudo:
+
+1. **Backend Service:**
+   - Root Directory: `backend`
+   - Detecta automaticamente Node.js
+
+2. **Frontend Service:**
+   - Root Directory: `frontend`  
+   - Detecta automaticamente Vite
+
+### 3. Render
+
+1. Acesse [render.com](https://render.com)
+2. "New" → "Web Service"
+3. **Root Directory: `backend`** (para API)
+4. **Root Directory: `frontend`** (para frontend)
+
+### 4. Netlify + Railway
+
+**Frontend no Netlify:**
+1. [netlify.com](https://netlify.com)
+2. Conecte GitHub
+3. **Base directory: `frontend`**
+4. **Build command: `npm run build`**
+5. **Publish directory: `frontend/dist`**
+
+## 🐳 Deploy com Docker (Avançado)
+
+### Para plataformas que suportam Docker:
 
 ```bash
-# Build e run local
-docker-compose up --build
+# Backend
+cd backend
+docker build -t gerenciador-backend .
 
-# Deploy em plataformas que suportam Docker
-# (Railway, Render, Heroku)
+# Frontend  
+cd frontend
+docker build -t gerenciador-frontend .
+
+# Ou usar docker-compose
+docker-compose up --build
 ```
 
-## 🔧 Configuração de Produção
+## ❌ Correções de Problemas Comuns
 
-### 1. Database
-- SQLite em desenvolvimento
-- PostgreSQL em produção (Railway fornece automaticamente)
+### Erro "npm: command not found" no Railway
 
-### 2. CORS
-Atualizar no backend para incluir domínio de produção:
+**Solução:** Configure Root Directory corretamente
+- Backend: Root Directory = `backend`
+- Frontend: Root Directory = `frontend`
+
+### Erro de CORS em produção
+
+**Solução:** Atualizar backend `src/server.ts`:
 ```typescript
 cors({
   origin: [
@@ -103,59 +124,33 @@ cors({
 })
 ```
 
-### 3. Build do Frontend
-```bash
-cd frontend
-npm run build
+### Build do frontend falha
+
+**Solução:** Verificar variáveis de ambiente:
+```env
+VITE_API_URL=https://seu-backend.up.railway.app
 ```
 
-### 4. Build do Backend
-```bash
-cd backend
-npm run build
-npm start
-```
+## 🌟 Deploy Recomendado: Vercel + Railway
 
-## 📊 Monitoramento
+**Melhor combinação:**
+- ✅ **Frontend no Vercel:** Otimizado para React/Vite
+- ✅ **Backend no Railway:** PostgreSQL gratuito + fácil deploy
+- ✅ **Separação clara:** Cada serviço em sua plataforma ideal
+- ✅ **Sem conflitos:** Evita problemas de monorepo
 
-- Railway: Dashboard nativo
-- Vercel: Analytics integrado
-- Render: Logs em tempo real
+## 📱 URLs Finais
 
-## 🛠️ Troubleshooting
+Após deploy correto:
+- **Frontend:** `https://gerenciador-gastos.vercel.app`
+- **Backend:** `https://gerenciador-gastos-api.up.railway.app`
 
-### Erro de CORS
-- Verificar `FRONTEND_URL` no backend
-- Atualizar origins no CORS
+## 🎉 Deploy em 3 Passos
 
-### Database
-- Railway: PostgreSQL automático
-- Outras: Verificar string de conexão
-
-### Build Errors
-- Verificar versões do Node.js
-- Limpar cache: `npm clean-install`
-
-## 🌟 Deploy Recomendado: Railway
-
-Railway é a opção mais simples para fullstack:
-
-1. **Fork** este repositório
-2. **Conecte** no Railway
-3. **Configure** variáveis de ambiente
-4. **Deploy** automático a cada push
-
-**URL do projeto:** `https://railway.app/template/seu-template`
+1. **Frontend → Vercel:** Conectar GitHub, Root = `frontend`
+2. **Backend → Railway:** Conectar GitHub, Root = `backend`  
+3. **Configurar:** Variables de ambiente com URLs corretas
 
 ---
 
-## 📱 URLs de Produção
-
-Após deploy, suas URLs serão:
-- **Frontend:** `https://gerenciador-gastos.vercel.app`
-- **Backend:** `https://gerenciador-gastos-api.railway.app`
-- **Full App:** `https://railway.app/project/seu-projeto`
-
-## 🎉 Pronto!
-
-Sua aplicação está agora disponível globalmente! 🌍
+**Essa configuração evita todos os problemas de monorepo e garante deploy perfeito!** 🚀
