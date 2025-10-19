@@ -8,8 +8,8 @@ import {
   ApiResponse 
 } from '../types/transaction';
 
-// Usar proxy do Vite em vez de URL absoluta
-const API_BASE_URL = '';
+// @ts-ignore
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://gerenciador-de-gastos-production.up.railway.app';
 
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
