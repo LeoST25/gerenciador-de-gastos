@@ -3,25 +3,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const serverless = require('serverless-http');
+const db = require('./database');
 
 const app = express();
 
-// ========== BANCO DE DADOS EM MEMÓRIA ==========
-// Armazenamento temporário (em produção usaria um banco real)
-let users = [];
-let transactions = [];
-let nextUserId = 1;
-let nextTransactionId = 1;
-
-// Função para encontrar usuário por email
-const findUserByEmail = (email) => {
-  return users.find(user => user.email === email);
-};
-
-// Função para encontrar usuário por ID
-const findUserById = (id) => {
-  return users.find(user => user.id === id);
-};
+// Inicializar banco de dados
+db.initializeTables().catch(console.error);
 
 // Função para extrair ID do usuário do token fake
 const getUserIdFromToken = (token) => {
@@ -30,11 +17,6 @@ const getUserIdFromToken = (token) => {
   }
   const parts = token.split('_');
   return parts.length >= 3 ? parseInt(parts[2]) : null;
-};
-
-// Função para buscar transações do usuário
-const getUserTransactions = (userId) => {
-  return transactions.filter(t => t.userId === userId);
 };
 
 // CORS configuração primeiro - ANTES de outros middlewares
@@ -111,182 +93,241 @@ app.get('/test', (req, res) => {
 
 // ========== AUTH ROUTES ==========
 // Register
-app.post('/auth/register', (req, res) => {
-  const { name, email, password } = req.body;
-  
-  // Validação básica
-  if (!name || !email || !password) {
-    return res.status(400).json({ 
-      error: 'Nome, email e senha são obrigatórios' 
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    
+    // Validação básica
+    if (!name || !email || !password) {
+      return res.status(400).json({ 
+        error: 'Nome, email e senha são obrigatórios' 
+      });
+    }
+    
+    // Verificar se email já existe
+    const { data: existingUser } = await db.findUserByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Email já está cadastrado'
+      });
+    }
+    
+    // Criar novo usuário
+    const { data: user, error } = await db.createUser({
+      name,
+      email,
+      password // Em produção, hash a senha
     });
-  }
-  
-  // Verificar se email já existe
-  const existingUser = findUserByEmail(email);
-  if (existingUser) {
-    return res.status(400).json({
-      error: 'Email já está cadastrado'
+    
+    if (error) {
+      console.error('Erro ao criar usuário:', error);
+      return res.status(500).json({ 
+        error: 'Erro interno do servidor' 
+      });
+    }
+    
+    console.log('👤 Usuário criado:', { id: user.id, email: user.email });
+    
+    // Gerar token
+    const token = `fake_token_${user.id}_${Date.now()}`;
+    
+    // Retornar dados sem senha
+    const { password: _, ...userWithoutPassword } = user;
+    
+    res.status(201).json({
+      message: 'Usuário criado com sucesso',
+      user: userWithoutPassword,
+      token
     });
+  } catch (error) {
+    console.error('Erro no registro:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
-  
-  // Criar novo usuário
-  const user = {
-    id: nextUserId++,
-    name,
-    email,
-    password, // Em produção, hash a senha
-    created_at: new Date().toISOString()
-  };
-  
-  users.push(user);
-  console.log('👤 Usuário criado:', { id: user.id, email: user.email, totalUsers: users.length });
-  
-  // Gerar token
-  const token = `fake_token_${user.id}_${Date.now()}`;
-  
-  // Retornar dados sem senha
-  const { password: _, ...userWithoutPassword } = user;
-  
-  res.status(201).json({
-    message: 'Usuário criado com sucesso',
-    user: userWithoutPassword,
-    token
-  });
 });
 
 // Login
-app.post('/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  
-  if (!email || !password) {
-    return res.status(400).json({ 
-      error: 'Email e senha são obrigatórios' 
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ 
+        error: 'Email e senha são obrigatórios' 
+      });
+    }
+    
+    // Buscar usuário
+    const { data: user, error } = await db.findUserByEmail(email);
+    if (error || !user) {
+      return res.status(401).json({ 
+        error: 'Email ou senha incorretos' 
+      });
+    }
+    
+    // Verificar senha (em produção, usar hash)
+    if (user.password !== password) {
+      return res.status(401).json({ 
+        error: 'Email ou senha incorretos' 
+      });
+    }
+    
+    console.log('🔐 Login realizado:', { id: user.id, email: user.email });
+    
+    // Gerar token
+    const token = `fake_token_${user.id}_${Date.now()}`;
+    
+    // Retornar dados sem senha
+    const { password: _, ...userWithoutPassword } = user;
+    
+    res.json({
+      message: 'Login realizado com sucesso',
+      user: userWithoutPassword,
+      token
     });
+  } catch (error) {
+    console.error('Erro no login:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
-  
-  // Buscar usuário
-  const user = findUserByEmail(email);
-  if (!user) {
-    return res.status(401).json({ 
-      error: 'Email ou senha incorretos' 
-    });
-  }
-  
-  // Verificar senha (em produção, usar hash)
-  if (user.password !== password) {
-    return res.status(401).json({ 
-      error: 'Email ou senha incorretos' 
-    });
-  }
-  
-  console.log('🔐 Login realizado:', { id: user.id, email: user.email });
-  
-  // Gerar token
-  const token = `fake_token_${user.id}_${Date.now()}`;
-  
-  // Retornar dados sem senha
-  const { password: _, ...userWithoutPassword } = user;
-  
-  res.json({
-    message: 'Login realizado com sucesso',
-    user: userWithoutPassword,
-    token
-  });
 });
 
 // Me (verificar token)
-app.get('/auth/me', (req, res) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token não fornecido' });
+app.get('/auth/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token não fornecido' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const userId = getUserIdFromToken(token);
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    
+    const { data: user, error } = await db.findUserById(userId);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Usuário não encontrado' });
+    }
+    
+    // Retornar dados sem senha
+    const { password: _, ...userWithoutPassword } = user;
+    
+    res.json({ user: userWithoutPassword });
+  } catch (error) {
+    console.error('Erro ao verificar usuário:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
-  
-  const token = authHeader.split(' ')[1];
-  const userId = getUserIdFromToken(token);
-  
-  if (!userId) {
-    return res.status(401).json({ error: 'Token inválido' });
-  }
-  
-  const user = findUserById(userId);
-  if (!user) {
-    return res.status(401).json({ error: 'Usuário não encontrado' });
-  }
-  
-  // Retornar dados sem senha
-  const { password: _, ...userWithoutPassword } = user;
-  
-  res.json({ user: userWithoutPassword });
 });
 
 // ========== TRANSACTIONS ROUTES ==========
 // Middleware para verificar autenticação
-const requireAuth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ 
+const requireAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Token não fornecido' 
+      });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const userId = getUserIdFromToken(token);
+    
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Token inválido' 
+      });
+    }
+    
+    const { data: user, error } = await db.findUserById(userId);
+    if (error || !user) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Usuário não encontrado' 
+      });
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Erro na autenticação:', error);
+    res.status(500).json({ 
       success: false,
-      error: 'Token não fornecido' 
+      error: 'Erro interno do servidor' 
     });
   }
-  
-  const token = authHeader.split(' ')[1];
-  const userId = getUserIdFromToken(token);
-  
-  if (!userId) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Token inválido' 
-    });
-  }
-  
-  const user = findUserById(userId);
-  if (!user) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Usuário não encontrado' 
-    });
-  }
-  
-  req.user = user;
-  next();
 };
 
 // Get transactions
-app.get('/transactions', requireAuth, (req, res) => {
-  const userTransactions = getUserTransactions(req.user.id);
-  
-  res.json({
-    success: true,
-    data: userTransactions
-  });
+app.get('/transactions', requireAuth, async (req, res) => {
+  try {
+    const { data: userTransactions, error } = await db.getUserTransactions(req.user.id);
+    
+    if (error) {
+      console.error('Erro ao buscar transações:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao buscar transações'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: userTransactions
+    });
+  } catch (error) {
+    console.error('Erro ao buscar transações:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
 });
 
 // Get transactions summary
-app.get('/transactions/summary', requireAuth, (req, res) => {
-  const userTransactions = getUserTransactions(req.user.id);
-  
-  const totalIncome = userTransactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+app.get('/transactions/summary', requireAuth, async (req, res) => {
+  try {
+    const { data: userTransactions, error } = await db.getUserTransactions(req.user.id);
     
-  const totalExpense = userTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-  
-  const summary = {
-    totalIncome,
-    totalExpense,
-    balance: totalIncome - totalExpense,
-    transactionCount: userTransactions.length
-  };
-  
-  res.json({
-    success: true,
-    data: summary
-  });
+    if (error) {
+      console.error('Erro ao buscar transações para resumo:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao buscar resumo'
+      });
+    }
+    
+    const totalIncome = userTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      
+    const totalExpense = userTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    
+    const summary = {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+      transactionCount: userTransactions.length
+    };
+    
+    res.json({
+      success: true,
+      data: summary
+    });
+  } catch (error) {
+    console.error('Erro ao calcular resumo:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
 });
 
 // Get transactions categories
@@ -311,129 +352,168 @@ app.get('/transactions/categories', requireAuth, (req, res) => {
 });
 
 // Create transaction
-app.post('/transactions', requireAuth, (req, res) => {
-  const { description, amount, type, category, date } = req.body;
-  
-  // Validação detalhada com logs
-  const validationErrors = [];
-  
-  // Description é opcional, mas se fornecida não pode ser vazia
-  if (description && description.trim() === '') {
-    validationErrors.push('Descrição não pode ser vazia');
-  }
-  
-  if (!amount && amount !== 0) {
-    validationErrors.push('Valor é obrigatório');
-  } else if (isNaN(parseFloat(amount))) {
-    validationErrors.push('Valor deve ser um número válido');
-  } else if (parseFloat(amount) <= 0) {
-    validationErrors.push('Valor deve ser maior que zero');
-  }
-  
-  if (!type || (type !== 'income' && type !== 'expense')) {
-    validationErrors.push('Tipo deve ser "income" ou "expense"');
-  }
-  
-  if (!category || category.trim() === '') {
-    validationErrors.push('Categoria é obrigatória');
-  }
-  
-  if (validationErrors.length > 0) {
-    return res.status(400).json({ 
+app.post('/transactions', requireAuth, async (req, res) => {
+  try {
+    const { description, amount, type, category, date } = req.body;
+    
+    // Validação detalhada
+    const validationErrors = [];
+    
+    // Description é opcional, mas se fornecida não pode ser vazia
+    if (description && description.trim() === '') {
+      validationErrors.push('Descrição não pode ser vazia');
+    }
+    
+    if (!amount && amount !== 0) {
+      validationErrors.push('Valor é obrigatório');
+    } else if (isNaN(parseFloat(amount))) {
+      validationErrors.push('Valor deve ser um número válido');
+    } else if (parseFloat(amount) <= 0) {
+      validationErrors.push('Valor deve ser maior que zero');
+    }
+    
+    if (!type || (type !== 'income' && type !== 'expense')) {
+      validationErrors.push('Tipo deve ser "income" ou "expense"');
+    }
+    
+    if (!category || category.trim() === '') {
+      validationErrors.push('Categoria é obrigatória');
+    }
+    
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: validationErrors.join(', ')
+      });
+    }
+    
+    const transactionData = {
+      user_id: req.user.id,
+      description: description ? description.trim() : null,
+      amount: parseFloat(amount),
+      type,
+      category: category.trim(),
+      date: date || new Date().toISOString().split('T')[0]
+    };
+    
+    const { data: transaction, error } = await db.createTransaction(transactionData);
+    
+    if (error) {
+      console.error('Erro ao criar transação:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao criar transação'
+      });
+    }
+    
+    console.log('💳 Transação criada com sucesso:', { 
+      id: transaction.id, 
+      userId: transaction.user_id || transaction.userId, 
+      description: transaction.description,
+      amount: transaction.amount,
+      type: transaction.type,
+      category: transaction.category
+    });
+    
+    res.status(201).json({
+      success: true,
+      data: transaction
+    });
+  } catch (error) {
+    console.error('Erro ao criar transação:', error);
+    res.status(500).json({
       success: false,
-      error: validationErrors.join(', ')
+      error: 'Erro interno do servidor'
     });
   }
-  
-  const transaction = {
-    id: nextTransactionId++,
-    userId: req.user.id,
-    description: description ? description.trim() : null,
-    amount: parseFloat(amount),
-    type,
-    category: category.trim(),
-    date: date || new Date().toISOString().split('T')[0],
-    created_at: new Date().toISOString()
-  };
-  
-  transactions.push(transaction);
-  console.log('💳 Transação criada com sucesso:', { 
-    id: transaction.id, 
-    userId: transaction.userId, 
-    description: transaction.description,
-    amount: transaction.amount,
-    type: transaction.type,
-    category: transaction.category,
-    totalTransactions: transactions.length 
-  });
-  
-  res.status(201).json({
-    success: true,
-    data: transaction
-  });
 });
 
 // ========== DASHBOARD ROUTES ==========
 // Get summary
-app.get('/dashboard/summary', requireAuth, (req, res) => {
-  const userTransactions = getUserTransactions(req.user.id);
-  
-  const totalIncome = userTransactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+app.get('/dashboard/summary', requireAuth, async (req, res) => {
+  try {
+    const { data: userTransactions, error } = await db.getTransactionsByUserId(req.user.id);
     
-  const totalExpenses = userTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-  
-  const sortedTransactions = userTransactions.sort((a, b) => 
-    new Date(b.created_at) - new Date(a.created_at)
-  );
-  
-  const lastTransaction = sortedTransactions[0] || null;
-  
-  res.json({
-    totalIncome,
-    totalExpenses,
-    balance: totalIncome - totalExpenses,
-    transactionCount: userTransactions.length,
-    lastTransaction: lastTransaction ? {
-      description: lastTransaction.description,
-      amount: lastTransaction.amount,
-      type: lastTransaction.type,
-      date: lastTransaction.date
-    } : null
-  });
+    if (error) {
+      console.error('Erro ao buscar transações para dashboard:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados do dashboard'
+      });
+    }
+    
+    const totalIncome = userTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+      
+    const totalExpenses = userTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const sortedTransactions = userTransactions.sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+    
+    const lastTransaction = sortedTransactions[0] || null;
+    
+    res.json({
+      totalIncome,
+      totalExpenses,
+      balance: totalIncome - totalExpenses,
+      transactionCount: userTransactions.length,
+      lastTransaction: lastTransaction ? {
+        description: lastTransaction.description,
+        amount: lastTransaction.amount,
+        type: lastTransaction.type,
+        date: lastTransaction.date
+      } : null
+    });
+  } catch (error) {
+    console.error('Erro no dashboard:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
 });
 
 // ========== AI ROUTES ==========
 // AI Analysis
-app.post('/ai/analyze', requireAuth, (req, res) => {
-  const userTransactions = getUserTransactions(req.user.id);
-  
-  if (userTransactions.length === 0) {
-    return res.json({
-      summary: {
-        totalIncome: 0,
-        totalExpenses: 0,
-        balance: 0,
-        savingsRate: 0
-      },
-      categoryBreakdown: [],
-      insights: [
-        'Você ainda não possui transações registradas.',
-        'Comece adicionando suas receitas e despesas para obter insights personalizados.',
-        'O controle financeiro é o primeiro passo para alcançar seus objetivos!'
-      ],
-      suggestions: [
-        'Registre sua primeira transação para começar',
-        'Defina categorias para organizar melhor seus gastos',
-        'Estabeleça metas financeiras mensais'
-      ],
-      spendingPattern: 'Iniciante - Sem dados suficientes',
-      riskLevel: 'Neutro'
-    });
-  }
+app.post('/ai/analyze', requireAuth, async (req, res) => {
+  try {
+    const { data: userTransactions, error } = await db.getTransactionsByUserId(req.user.id);
+    
+    if (error) {
+      console.error('Erro ao buscar transações para análise AI:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao carregar dados para análise'
+      });
+    }
+    
+    if (userTransactions.length === 0) {
+      return res.json({
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          savingsRate: 0
+        },
+        categoryBreakdown: [],
+        insights: [
+          'Você ainda não possui transações registradas.',
+          'Comece adicionando suas receitas e despesas para obter insights personalizados.',
+          'O controle financeiro é o primeiro passo para alcançar seus objetivos!'
+        ],
+        suggestions: [
+          'Registre sua primeira transação para começar',
+          'Defina categorias para organizar melhor seus gastos',
+          'Estabeleça metas financeiras mensais'
+        ],
+        spendingPattern: 'Iniciante - Sem dados suficientes',
+        riskLevel: 'Neutro'
+      });
+    }
   
   const totalIncome = userTransactions
     .filter(t => t.type === 'income')
@@ -512,21 +592,28 @@ app.post('/ai/analyze', requireAuth, (req, res) => {
     riskLevel = 'Alto';
   }
   
-  const analysis = {
-    summary: {
-      totalIncome,
-      totalExpenses,
-      balance,
-      savingsRate: Math.round(savingsRate)
-    },
-    categoryBreakdown: categoryArray,
-    insights,
-    suggestions,
-    spendingPattern,
-    riskLevel
-  };
-  
-  res.json(analysis);
+    const analysis = {
+      summary: {
+        totalIncome,
+        totalExpenses,
+        balance,
+        savingsRate: Math.round(savingsRate)
+      },
+      categoryBreakdown: categoryArray,
+      insights,
+      suggestions,
+      spendingPattern,
+      riskLevel
+    };
+    
+    res.json(analysis);
+  } catch (error) {
+    console.error('Erro na análise de IA:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
 });
 
 // Rota básica de auth para teste  
