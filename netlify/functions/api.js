@@ -223,6 +223,35 @@ exports.handler = async (event, context) => {
       }
     }
 
+    // Get transaction categories
+    if (path === '/transactions/categories' && method === 'GET') {
+      try {
+        const user = requireAuth();
+        const userTransactions = transactions.filter(t => t.userId === user.id);
+        
+        // Extrair categorias únicas das transações do usuário
+        const categories = [...new Set(userTransactions.map(t => t.category))].filter(Boolean);
+        
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            success: true,
+            data: categories
+          })
+        };
+      } catch (error) {
+        return {
+          statusCode: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            success: false,
+            error: error.message
+          })
+        };
+      }
+    }
+
     // Create transaction
     if (path === '/transactions' && method === 'POST') {
       try {
